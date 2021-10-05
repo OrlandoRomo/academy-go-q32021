@@ -13,8 +13,21 @@ type listInteractor struct {
 
 type ListInteractor interface {
 	Get(term string) ([]*model.List, error)
+	GetFromCSV() ([]*model.List, error)
 }
 
-func NewListInteractor(r repository.ListRepository, p presenter.ListPresenter) *listInteractor {
-	return &listInteractor{r, p}
+func NewListInteractor(repository repository.ListRepository, presenter presenter.ListPresenter) *listInteractor {
+	return &listInteractor{repository, presenter}
+}
+
+func (l *listInteractor) Get(term string) ([]*model.List, error) {
+	definitions, err := l.ListRepository.FindDefinitionsList(term)
+	if err != nil {
+		return nil, err
+	}
+	return l.ListPresenter.ResponseList(definitions), nil
+}
+
+func (l *listInteractor) GetFromCSV() ([]*model.List, error) {
+	return nil, nil
 }

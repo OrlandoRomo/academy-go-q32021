@@ -1,7 +1,58 @@
 package model
 
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+)
+
+const (
+	urbanDictionaryURL = "https://mashape-community-urban-dictionary.p.rapidapi.com/define"
+	rapidapiKeyName    = "x-rapidapi-key"
+)
+
+type UrbanDictionary struct {
+	ApiURL  string
+	Headers map[string]string
+}
+
+func NewUrbanDictionary(apiKey string) *UrbanDictionary {
+	return &UrbanDictionary{
+		ApiURL: urbanDictionaryURL,
+		Headers: map[string]string{
+			rapidapiKeyName: apiKey,
+		},
+	}
+}
+
+func (u *UrbanDictionary) GetDefinitionsByTerm(term string) ([]*List, error) {
+	var list ListDefinition
+	url := fmt.Sprintf("%s?term=%s", u.ApiURL, term)
+	request, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Add(rapidapiKeyName, u.Headers[rapidapiKeyName])
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(body, &list)
+	if err != nil {
+		return nil, err
+	}
+	return list.List, nil
+}
+
 type ListDefinition struct {
-	List []List `json:"list"`
+	List []*List `json:"list"`
 }
 
 // Struct to unmarshal the Urban dictionary response of definitions based on a term
