@@ -14,11 +14,11 @@ func NewRouter(c controller.AppController) *mux.Router {
 
 	router = router.PathPrefix("/api/v1/").Subrouter()
 
-	router.HandleFunc("/definitions/", c.List.GetDefinitions).
+	router.HandleFunc("/definitions/", c.Definitions.GetDefinitions).
 		Queries("term", "{term}").
 		Methods(http.MethodGet)
 
-	router.HandleFunc("/definitions/csv/", c.List.GetDefinitionsFromCSV).
+	router.HandleFunc("/definitions/csv/{id:[0-9a-zA-Z\\W]+|}/", c.Definitions.GetDefinitionsFromCSV).
 		Queries("concurrent", "{concurrent:(?:true|false)}").
 		Methods(http.MethodGet)
 	return router

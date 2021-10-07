@@ -6,15 +6,19 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/OrlandoRomo/academy-go-q32021/infrastructure/api"
 	"github.com/OrlandoRomo/academy-go-q32021/infrastructure/router"
 	"github.com/OrlandoRomo/academy-go-q32021/registry"
 )
 
 func main() {
-	var UrbanDictionaryApiKey = flag.String("urban-dictionary-api-key", envString("URBAN_DICTIONARY_API_KEY", ""), "Urban Dictionary api key")
+	var UrbanDictionaryApiKey = flag.String("urban-dictionary-api-key", envString("URBAN_DICTIONARY_API_KEY", "55a4103f9amsh99bbd454b45f012p180fb6jsnf682ba32da43"), "Urban Dictionary api key")
 	flag.Parse()
 
-	r := registry.NewRegistry(*UrbanDictionaryApiKey)
+	urbanDictionaryClient := api.NewUrbanDictionary(*UrbanDictionaryApiKey)
+
+	r := registry.NewRegistry(urbanDictionaryClient)
+
 	router := router.NewRouter(r.NewAppController())
 	log.Printf("listening on http://localhost:%s", "8080")
 	http.ListenAndServe(":8080", router)
