@@ -38,7 +38,7 @@ func NewUrbanDictionary(apiKey string) *UrbanDictionary {
 
 func (u *UrbanDictionary) GetDefinitions(term string) (*model.List, error) {
 	var list *model.List
-	url := fmt.Sprintf("%s?term=%s", u.ApiURL, term)
+	url := fmt.Sprintf("%s?ter=%s", u.ApiURL, term)
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,9 @@ func (u *UrbanDictionary) GetDefinitions(term string) (*model.List, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	defer response.Body.Close()
+
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
@@ -69,6 +71,9 @@ func (u *UrbanDictionary) GetDefinitionsCSV(id string) (*model.List, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	defer file.Close()
+
 	csvReader, err := csv.NewReader(file).ReadAll()
 	if err != nil {
 		return nil, err
@@ -98,20 +103,23 @@ func (u *UrbanDictionary) Read() (*os.File, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return file, err
 }
 
 func (u *UrbanDictionary) Write(definitionsList *model.List) error {
-	file, err := os.OpenFile(u.CSVPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
+	file, err := u.Read()
 	if err != nil {
 		return err
 	}
+
+	defer file.Close()
+
 	csvWriter := csv.NewWriter(file)
 	for _, definition := range definitionsList.Definitions {
 		id := strconv.Itoa(int(definition.Defid))
 		_ = csvWriter.Write([]string{id, definition.Word, definition.Definition, definition.Permalink, definition.Example})
 	}
 	csvWriter.Flush()
-	file.Close()
 	return err
 }
