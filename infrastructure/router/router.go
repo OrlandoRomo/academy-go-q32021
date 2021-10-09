@@ -22,7 +22,7 @@ func NewRouter(c controller.AppController) *mux.Router {
 	router.HandleFunc("/definitions/csv/{id:[0-9a-zA-Z\\W]+|}/", c.Definitions.GetDefinitionsFromCSV).
 		Methods(http.MethodGet)
 
-	router.HandleFunc("/definitions/csv/", c.Definitions.GetDefinitionsFromCSV).
+	router.HandleFunc("/definitions/csv/", c.Definitions.GetConcurrentDefinitions).
 		Queries("concurrent", "{concurrent:(?:true|false)}").
 		Methods(http.MethodGet)
 
