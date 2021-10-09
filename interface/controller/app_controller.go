@@ -1,5 +1,5 @@
 package controller
 
 type AppController struct {
-	Definitions interface{ DefinitionController }
+	Definitions DefinitionController
 }

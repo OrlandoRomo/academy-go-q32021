@@ -8,11 +8,11 @@ import (
 type registry struct {
 	UrbanDictionaryClient *api.UrbanDictionary
 }
-type Registry interface {
+type Register interface {
 	NewAppController() controller.AppController
 }
 
-func NewRegistry(urbanDictionary *api.UrbanDictionary) Registry {
+func NewRegistry(urbanDictionary *api.UrbanDictionary) Register {
 	return &registry{urbanDictionary}
 }
 

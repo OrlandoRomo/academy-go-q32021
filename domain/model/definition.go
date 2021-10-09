@@ -9,13 +9,13 @@ type List struct {
 type Definition struct {
 	Definition  string   `json:"definition,omitempty"`
 	Permalink   string   `json:"permalink,omitempty"`
-	ThumbsUp    int64    `json:"thumbs_up,omitempty"`
+	ThumbsUp    int      `json:"thumbs_up,omitempty"`
 	SoundUrls   []string `json:"sound_urls,omitempty"`
 	Author      string   `json:"author,omitempty"`
 	Word        string   `json:"word,omitempty"`
-	Defid       int64    `json:"defid,omitempty"`
+	Defid       int      `json:"defid,omitempty"`
 	CurrentVote string   `json:"current_vote,omitempty"`
 	WrittenOn   string   `json:"written_on,omitempty"`
 	Example     string   `json:"example,omitempty"`
-	ThumbsDown  int64    `json:"thumbs_down,omitempty"`
+	ThumbsDown  int      `json:"thumbs_down,omitempty"`
 }

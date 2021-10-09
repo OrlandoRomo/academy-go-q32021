@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// NewRouter returns a mux router with the needed resources
 func NewRouter(c controller.AppController) *mux.Router {
 	router := mux.NewRouter()
 	router.Use(middleware.HeadersMiddleware)
@@ -19,7 +20,11 @@ func NewRouter(c controller.AppController) *mux.Router {
 		Methods(http.MethodGet)
 
 	router.HandleFunc("/definitions/csv/{id:[0-9a-zA-Z\\W]+|}/", c.Definitions.GetDefinitionsFromCSV).
+		Methods(http.MethodGet)
+
+	router.HandleFunc("/definitions/csv/", c.Definitions.GetDefinitionsFromCSV).
 		Queries("concurrent", "{concurrent:(?:true|false)}").
 		Methods(http.MethodGet)
+
 	return router
 }
