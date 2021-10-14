@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	var UrbanDictionaryApiKey = flag.String("urban-dictionary-api-key", envString("URBAN_DICTIONARY_API_KEY", "55a4103f9amsh99bbd454b45f012p180fb6jsnf682ba32da43"), "Urban Dictionary api key")
+	var UrbanDictionaryApiKey = flag.String("urban-dictionary-api-key", envString("URBAN_DICTIONARY_API_KEY", ""), "Urban Dictionary api key")
 	flag.Parse()
 
 	urbanDictionaryClient := api.NewUrbanDictionary(*UrbanDictionaryApiKey)
