@@ -31,94 +31,117 @@ func (m MockInteractor) GetConcurrent() (*model.List, error) {
 }
 
 func TestGetDefinitions(t *testing.T) {
+	testcases := []struct {
+		name               string
+		mockResponse       *model.List
+		error              error
+		term               string
+		bodyMessage        string
+		httpStatusExpected int
+	}{
+		{
+			name:               "success - valid request",
+			mockResponse:       &model.List{},
+			error:              nil,
+			term:               "sample",
+			bodyMessage:        "the body response should be not nil",
+			httpStatusExpected: http.StatusOK,
+		},
+		{
+			name:               "failure - bad request",
+			mockResponse:       &model.List{},
+			error:              model.ErrInvalidData{Field: "term"},
+			term:               "",
+			bodyMessage:        "the body response should be not nil",
+			httpStatusExpected: http.StatusBadRequest,
+		},
+		{
+			name:               "success - definition not found",
+			mockResponse:       &model.List{},
+			error:              model.ErrNotFound{Term: "a random term"},
+			term:               "a random term",
+			bodyMessage:        "the body response should be not nil",
+			httpStatusExpected: http.StatusNotFound,
+		},
+		{
+			name:               "success - missing api key",
+			mockResponse:       &model.List{},
+			error:              model.ErrMissingApiKey{},
+			term:               "wfio",
+			bodyMessage:        "the body response should be not nil",
+			httpStatusExpected: http.StatusForbidden,
+		},
+	}
 	mockInteractor := MockInteractor{}
-	t.Run("success - valid request", func(t *testing.T) {
-		mockInteractor.On("Get", "sample").Return(&model.List{
-			Definitions: []*model.Definition{
-				{Word: "sample"},
-			},
-		}, nil)
-		controller := NewDefinitionController(mockInteractor)
-		req, err := http.NewRequest(http.MethodGet, "/definitions/", nil)
-		assert.Nil(t, err, "new request error should be nil")
-		req = mux.SetURLVars(req, map[string]string{"term": "sample"})
-		rec := httptest.NewRecorder()
-		controller.GetDefinitions(rec, req)
-		assert.NotNil(t, rec.Body, "the body response should be not nil")
-		assert.Equal(t, rec.Result().StatusCode, http.StatusOK)
-	})
-
-	t.Run("failure - bad request", func(t *testing.T) {
-		mockInteractor.On("Get", "").Return(&model.List{}, model.ErrInvalidData{Field: "term"})
-		controller := NewDefinitionController(mockInteractor)
-		req, err := http.NewRequest(http.MethodGet, "/definitions/", nil)
-		assert.Nil(t, err, "new request error should be nil")
-		req = mux.SetURLVars(req, map[string]string{"term": ""})
-		rec := httptest.NewRecorder()
-		controller.GetDefinitions(rec, req)
-		assert.NotNil(t, rec.Body, "the body response should be not nil")
-		assert.Equal(t, rec.Result().StatusCode, http.StatusBadRequest)
-	})
-
-	t.Run("success - definition not found", func(t *testing.T) {
-		mockInteractor.On("Get", "a random term").Return(&model.List{}, model.ErrNotFound{Term: "a random term"})
-		controller := NewDefinitionController(mockInteractor)
-		req, err := http.NewRequest(http.MethodGet, "/definitions/", nil)
-		assert.Nil(t, err, "new request error should be nil")
-		req = mux.SetURLVars(req, map[string]string{"term": "a random term"})
-		rec := httptest.NewRecorder()
-		controller.GetDefinitions(rec, req)
-		assert.NotNil(t, rec.Body, "the body response should be not nil")
-		assert.Equal(t, rec.Result().StatusCode, http.StatusNotFound)
-	})
-
-	t.Run("success - missing api key", func(t *testing.T) {
-		mockInteractor.On("Get", "wfio").Return(&model.List{}, model.ErrMissingApiKey{})
-		controller := NewDefinitionController(mockInteractor)
-		req, err := http.NewRequest(http.MethodGet, "/definitions/", nil)
-		assert.Nil(t, err, "new request error should be nil")
-		req = mux.SetURLVars(req, map[string]string{"term": "wfio"})
-		rec := httptest.NewRecorder()
-		controller.GetDefinitions(rec, req)
-		assert.NotNil(t, rec.Body, "the body response should be not nil")
-		assert.Equal(t, rec.Result().StatusCode, http.StatusForbidden)
-	})
-
+	for _, test := range testcases {
+		t.Run(test.name, func(t *testing.T) {
+			mockInteractor.On("Get", test.term).Return(test.mockResponse, test.error)
+			controller := NewDefinitionController(mockInteractor)
+			req, err := http.NewRequest(http.MethodGet, "/definitions/", nil)
+			assert.Nil(t, err, "new request error should be nil")
+			req = mux.SetURLVars(req, map[string]string{"term": test.term})
+			rec := httptest.NewRecorder()
+			controller.GetDefinitions(rec, req)
+			assert.NotNil(t, rec.Body, test.bodyMessage)
+			assert.Equal(t, rec.Result().StatusCode, test.httpStatusExpected)
+		})
+	}
 }
 func TestGetDefinitionsFromCSV(t *testing.T) {
 
-	mockInteractor := MockInteractor{}
-
-	t.Run("success - valid request by definition id", func(t *testing.T) {
-		var list model.List
-		mockInteractor.On("GetFromCSV", "1").Return(&model.List{
-			Definitions: []*model.Definition{
-				{Defid: 1},
+	testcases := []struct {
+		name               string
+		mockResponse       *model.List
+		error              error
+		id                 string
+		bodyMessage        string
+		httpStatusExpected int
+		idExpected         int
+	}{
+		{
+			name: "success - valid request by definition id",
+			mockResponse: &model.List{
+				Definitions: []*model.Definition{
+					{
+						Word:  "hello",
+						Defid: 1,
+					},
+				},
 			},
-		}, nil)
-		controller := NewDefinitionController(mockInteractor)
-		req, err := http.NewRequest(http.MethodGet, "/definitions/csv/", nil)
-		assert.Nil(t, err, "new request error should be nil")
-		req = mux.SetURLVars(req, map[string]string{"id": "1"})
-		rec := httptest.NewRecorder()
-		controller.GetDefinitionsFromCSV(rec, req)
-		res := rec.Result()
-		assert.NotNil(t, res.Body, "the body response should be not nil")
-		assert.Equal(t, res.StatusCode, http.StatusOK)
-		body, _ := ioutil.ReadAll(res.Body)
-		json.Unmarshal(body, &list)
-		assert.Equal(t, list.Definitions[0].Defid, 1)
-	})
-
-	t.Run("success - definition not found", func(t *testing.T) {
-		mockInteractor.On("GetFromCSV", "1233").Return(&model.List{}, model.ErrNotFoundInCSV{Id: "1233"})
-		controller := NewDefinitionController(mockInteractor)
-		req, err := http.NewRequest(http.MethodGet, "/definitions/csv/", nil)
-		assert.Nil(t, err, "new request error should be nil")
-		req = mux.SetURLVars(req, map[string]string{"id": "1233"})
-		rec := httptest.NewRecorder()
-		controller.GetDefinitionsFromCSV(rec, req)
-		assert.NotNil(t, rec.Body, "the body response should be not nil")
-		assert.Equal(t, rec.Result().StatusCode, http.StatusNotFound)
-	})
+			id:                 "1",
+			error:              nil,
+			bodyMessage:        "the body response should be not nil",
+			httpStatusExpected: http.StatusOK,
+			idExpected:         1,
+		},
+		{
+			name:               "failure - definition not found",
+			mockResponse:       &model.List{},
+			id:                 "1233",
+			error:              model.ErrNotFoundInCSV{Id: "1233"},
+			bodyMessage:        "the body response should be not nil",
+			httpStatusExpected: http.StatusNotFound,
+		},
+	}
+	mockInteractor := MockInteractor{}
+	var list model.List
+	for _, test := range testcases {
+		t.Run(test.name, func(t *testing.T) {
+			mockInteractor.On("GetFromCSV", test.id).Return(test.mockResponse, test.error)
+			controller := NewDefinitionController(mockInteractor)
+			req, err := http.NewRequest(http.MethodGet, "/definitions/csv/", nil)
+			assert.Nil(t, err, "new request error should be nil")
+			req = mux.SetURLVars(req, map[string]string{"id": test.id})
+			rec := httptest.NewRecorder()
+			controller.GetDefinitionsFromCSV(rec, req)
+			res := rec.Result()
+			assert.NotNil(t, res.Body, test.bodyMessage)
+			assert.Equal(t, res.StatusCode, test.httpStatusExpected)
+			if test.idExpected != 0 {
+				body, _ := ioutil.ReadAll(res.Body)
+				json.Unmarshal(body, &list)
+				assert.Equal(t, list.Definitions[0].Defid, test.idExpected)
+			}
+		})
+	}
 }

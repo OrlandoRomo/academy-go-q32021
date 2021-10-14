@@ -9,14 +9,17 @@ import (
 
 func TestResponseDefinitions(t *testing.T) {
 	testcases := []struct {
-		name              string
-		response          *model.List
-		expectedWrittenOn string
-		parsedSuccessfull bool
+		name           string
+		message        string
+		response       *model.List
+		error          error
+		assertErr      func(t assert.TestingT, object interface{}, msgAndArgs ...interface{}) bool
+		assertResponse func(t assert.TestingT, object interface{}, msgAndArgs ...interface{}) bool
 	}{
 		{
-			name:              "success - written on field with correct format",
-			expectedWrittenOn: "Sun, 30-April-2006 20:18",
+			name:    "success - written on field with correct format",
+			message: "written on field parsed successfully",
+			error:   nil,
 			response: &model.List{
 				Definitions: []*model.Definition{
 					{
@@ -25,36 +28,32 @@ func TestResponseDefinitions(t *testing.T) {
 					},
 				},
 			},
-			parsedSuccessfull: true,
+			assertErr:      assert.Nil,
+			assertResponse: assert.NotNil,
 		},
 		{
-			name:              "failure - written on field with incorrect format",
-			expectedWrittenOn: "26-April-2018 Thursday",
+			name:    "failure - written on field with incorrect format",
+			message: "written on field parsed unsuccessfully",
+			error:   model.ErrParsingDate{"2018-04-26T19", UrbanLayout},
 			response: &model.List{
 				Definitions: []*model.Definition{
 					{
-						Word:      "lmao",
-						WrittenOn: "2018-04-26T19:19:47.118Z",
+						Word:      "the",
+						WrittenOn: "2018-04-26T19",
 					},
 				},
 			},
-			parsedSuccessfull: false,
+			assertErr:      assert.NotNil,
+			assertResponse: assert.Empty,
 		},
 	}
 
 	for _, test := range testcases {
 		t.Run(test.name, func(t *testing.T) {
 			presenter := NewDefinitionPresenter()
-			response := presenter.ResponseDefinitions(test.response)
-			definition := response.Definitions[0]
-
-			if test.parsedSuccessfull {
-				assert.Equal(t, test.expectedWrittenOn, definition.WrittenOn)
-			}
-
-			if !test.parsedSuccessfull {
-				assert.NotEqual(t, test.expectedWrittenOn, definition.WrittenOn)
-			}
+			response, err := presenter.ResponseDefinitions(test.response)
+			test.assertErr(t, err, test.message)
+			test.assertResponse(t, response)
 		})
 	}
 }

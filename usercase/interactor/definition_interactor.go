@@ -26,7 +26,7 @@ func (d *definitionInteractor) Get(term string) (*model.List, error) {
 	if err != nil {
 		return nil, err
 	}
-	return d.definitionsPresenter.ResponseDefinitions(definitionsList), nil
+	return d.definitionsPresenter.ResponseDefinitions(definitionsList)
 }
 
 func (d *definitionInteractor) GetFromCSV(id string) (*model.List, error) {
@@ -34,7 +34,7 @@ func (d *definitionInteractor) GetFromCSV(id string) (*model.List, error) {
 	if err != nil {
 		return nil, err
 	}
-	return d.definitionsPresenter.ResponseDefinitions(definitionsList), nil
+	return d.definitionsPresenter.ResponseDefinitions(definitionsList)
 }
 
 func (d *definitionInteractor) GetConcurrent() (*model.List, error) {

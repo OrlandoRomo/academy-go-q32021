@@ -19,13 +19,16 @@ func NewDefinitionPresenter() presenter.DefinitionPresenter {
 }
 
 // ResponseDefinitions return the list of definitions fulfilling the DefinitionPresenter interface
-func (l *definitionPresenter) ResponseDefinitions(definitionsList *model.List) *model.List {
+func (l *definitionPresenter) ResponseDefinitions(definitionsList *model.List) (*model.List, error) {
 	for _, definition := range definitionsList.Definitions {
 		writtenParsed, err := time.Parse(UrbanLayout, definition.WrittenOn)
 		if err != nil {
-			continue
+			return nil, model.ErrParsingDate{
+				Date:   definition.WrittenOn,
+				Format: UrbanLayout,
+			}
 		}
 		definition.WrittenOn = writtenParsed.Format(UserLayout)
 	}
-	return definitionsList
+	return definitionsList, nil
 }

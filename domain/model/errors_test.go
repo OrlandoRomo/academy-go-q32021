@@ -6,8 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/OrlandoRomo/academy-go-q32021/infrastructure/middleware"
-	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,21 +16,46 @@ func TestEncodeError(t *testing.T) {
 		code        int
 		contentType string
 	}{
-		{"not found error type", ErrNotFound{}, http.StatusNotFound, "application/json; charset=utf-8"},
-		{"not found in CSV error type", ErrNotFoundInCSV{}, http.StatusNotFound, "application/json; charset=utf-8"},
-		{"missing api key error type", ErrMissingApiKey{}, http.StatusForbidden, "application/json; charset=utf-8"},
-		{"missing field error type", ErrMissingField{}, http.StatusBadRequest, "application/json; charset=utf-8"},
-		{"invalid data error type", ErrInvalidData{}, http.StatusBadRequest, "application/json; charset=utf-8"},
-		{"random error type", errors.New("random unknown error"), http.StatusInternalServerError, "application/json; charset=utf-8"},
+		{
+			name:        "not found error type",
+			err:         ErrNotFound{},
+			code:        http.StatusNotFound,
+			contentType: "application/json; charset=utf-8",
+		},
+		{
+			name:        "not found in CSV error type",
+			err:         ErrNotFoundInCSV{},
+			code:        http.StatusNotFound,
+			contentType: "application/json; charset=utf-8",
+		},
+		{
+			name:        "missing api key error type",
+			err:         ErrMissingApiKey{},
+			code:        http.StatusForbidden,
+			contentType: "application/json; charset=utf-8",
+		},
+		{
+			name:        "invalid data error type",
+			err:         ErrInvalidData{},
+			code:        http.StatusBadRequest,
+			contentType: "application/json; charset=utf-8",
+		},
+		{
+			name:        "error parsing error",
+			err:         ErrParsingDate{},
+			code:        http.StatusInternalServerError,
+			contentType: "application/json; charset=utf-8",
+		},
+		{
+			name:        "random error type",
+			err:         errors.New("random unknown error"),
+			code:        http.StatusInternalServerError,
+			contentType: "application/json; charset=utf-8",
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
-			r := mux.NewRouter()
-			r.Use(middleware.HeadersMiddleware)
-			r.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {})
-			req := httptest.NewRequest("GET", "/", nil)
-			r.ServeHTTP(w, req)
 			EncodeError(w, test.err)
 			assert.Equal(t, test.code, w.Code)
 			assert.Equal(t, test.contentType, w.Header().Get("Content-Type"))

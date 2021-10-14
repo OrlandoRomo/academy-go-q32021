@@ -6,14 +6,6 @@ import (
 	"net/http"
 )
 
-type ErrMissingField struct {
-	field string
-}
-
-func (e ErrMissingField) Error() string {
-	return fmt.Sprintf("the field %s is required", e.field)
-}
-
 type ErrInvalidData struct {
 	Field string
 }
@@ -27,7 +19,7 @@ type ErrNotFound struct {
 }
 
 func (e ErrNotFound) Error() string {
-	return fmt.Sprintf("he are not definitions for the term %s", e.Term)
+	return fmt.Sprintf("there are not definitions for the term %s", e.Term)
 }
 
 type ErrNotFoundInCSV struct {
@@ -44,6 +36,15 @@ func (e ErrMissingApiKey) Error() string {
 	return "Urban Dictionary invalid api key"
 }
 
+type ErrParsingDate struct {
+	Date   string
+	Format string
+}
+
+func (e ErrParsingDate) Error() string {
+	return fmt.Sprintf("Could not parsed the date %s into the format %s", e.Date, e.Format)
+}
+
 // EncodeError encodes the error into a json format and writing the corresponding http status
 func EncodeError(w http.ResponseWriter, err error) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -52,7 +53,7 @@ func EncodeError(w http.ResponseWriter, err error) {
 		w.WriteHeader(http.StatusNotFound)
 	case ErrMissingApiKey:
 		w.WriteHeader(http.StatusForbidden)
-	case ErrMissingField, ErrInvalidData:
+	case ErrInvalidData:
 		w.WriteHeader(http.StatusBadRequest)
 	default:
 		w.WriteHeader(http.StatusInternalServerError)

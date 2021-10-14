@@ -13,6 +13,12 @@ import (
 	"github.com/OrlandoRomo/academy-go-q32021/domain/model"
 )
 
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+var Client HTTPClient
+
 const (
 	urbanDictionaryURL = "https://mashape-community-urban-dictionary.p.rapidapi.com/define"
 	rapidapiKeyName    = "x-rapidapi-key"
@@ -23,6 +29,10 @@ type UrbanDictionary struct {
 	ApiURL  string
 	Headers map[string]string
 	CSVPath string
+}
+
+func init() {
+	Client = &http.Client{}
 }
 
 // NewUrbanDictionary returns a new instance of the UrbanDictionary client
@@ -50,7 +60,7 @@ func (u *UrbanDictionary) GetDefinitions(term string) (*model.List, error) {
 	}
 	request.Header.Add(rapidapiKeyName, u.Headers[rapidapiKeyName])
 
-	response, err := http.DefaultClient.Do(request)
+	response, err := Client.Do(request)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +103,7 @@ func (u *UrbanDictionary) GetDefinitionById(id string) (*model.List, error) {
 
 // Open returns a pointer of the local csv file
 func (u *UrbanDictionary) Open() (*os.File, error) {
-	file, err := os.OpenFile(u.CSVPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
+	file, err := os.OpenFile(u.CSVPath, os.O_APPEND|os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -116,11 +126,14 @@ func (u *UrbanDictionary) Read(id string) ([]*model.Definition, error) {
 			break
 		}
 		if err != nil {
-			fmt.Println(err.Error())
 			continue
 		}
 		if id == line[0] {
-			idCsv, _ := strconv.Atoi(line[0])
+			idCsv, err := strconv.Atoi(line[0])
+			if err != nil {
+				return nil, err
+			}
+
 			definition := model.Definition{
 				Defid:      idCsv,
 				Word:       line[1],
@@ -148,7 +161,7 @@ func (u *UrbanDictionary) Write(definitionsList *model.List) error {
 
 	csvWriter := csv.NewWriter(file)
 	for _, definition := range definitionsList.Definitions {
-		id := strconv.Itoa(int(definition.Defid))
+		id := strconv.Itoa(definition.Defid)
 		err = csvWriter.Write([]string{
 			id,
 			definition.Word,
@@ -157,7 +170,7 @@ func (u *UrbanDictionary) Write(definitionsList *model.List) error {
 			definition.Permalink,
 			definition.Example})
 		if err != nil {
-			continue
+			return err
 		}
 	}
 	csvWriter.Flush()

@@ -33,9 +33,9 @@ type MockDefinitionPresenter struct {
 	mock.Mock
 }
 
-func (m MockDefinitionPresenter) ResponseDefinitions(definitionsList *model.List) *model.List {
+func (m MockDefinitionPresenter) ResponseDefinitions(definitionsList *model.List) (*model.List, error) {
 	args := m.Called(definitionsList)
-	return args.Get(0).(*model.List)
+	return args.Get(0).(*model.List), args.Error(1)
 }
 
 func TestGet(t *testing.T) {
@@ -115,11 +115,12 @@ func TestGet(t *testing.T) {
 
 func TestGetFromCSV(t *testing.T) {
 	testcases := []struct {
-		name         string
-		term         string
-		response     *model.List
-		definitionId string
-		error        error
+		name           string
+		term           string
+		response       *model.List
+		definitionId   string
+		error          error
+		assertIdEquals func(assert.TestingT, interface{}, interface{}, ...interface{}) bool
 	}{
 		{
 			name:         "success - definition found",
@@ -140,6 +141,7 @@ func TestGetFromCSV(t *testing.T) {
 					},
 				},
 			},
+			assertIdEquals: assert.Equal,
 		},
 		{
 			name:         "failure - definition not found",
@@ -160,6 +162,7 @@ func TestGetFromCSV(t *testing.T) {
 					},
 				},
 			},
+			assertIdEquals: assert.NotEqual,
 		},
 	}
 
@@ -171,16 +174,9 @@ func TestGetFromCSV(t *testing.T) {
 
 			interactor := NewDefinitionInteractor(mockRepo, mockPresenter)
 			definitions, _ := interactor.urbanDictionaryRepository.GetDefinitionById(test.definitionId)
-			id, _ := strconv.Atoi(test.definitionId)
-
-			if definitions.Definitions[0].Defid == id {
-				assert.Equal(t, id, definitions.Definitions[0].Defid)
-			}
-
-			if definitions.Definitions[0].Defid != id {
-				assert.NotEqual(t, id, definitions.Definitions[0].Defid)
-			}
-
+			id, err := strconv.Atoi(test.definitionId)
+			assert.Nil(t, err)
+			test.assertIdEquals(t, id, definitions.Definitions[0].Defid)
 		})
 	}
 }
