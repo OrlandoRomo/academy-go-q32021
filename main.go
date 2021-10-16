@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,16 +13,19 @@ import (
 )
 
 func main() {
-	var UrbanDictionaryApiKey = flag.String("urban-dictionary-api-key", envString("URBAN_DICTIONARY_API_KEY", ""), "Urban Dictionary api key")
+	var (
+		urbanDictionaryApiKey = flag.String("urban-dictionary-api-key", envString("URBAN_DICTIONARY_API_KEY", ""), "Urban Dictionary api key")
+		urbanDictionaryPort   = flag.String("urban-dictionary-port", envString("URBAN_DICTIONARY_PORT", "8080"), "Urban Dictionary port to listen to")
+	)
 	flag.Parse()
 
-	urbanDictionaryClient := api.NewUrbanDictionary(*UrbanDictionaryApiKey)
+	urbanDictionaryClient := api.NewUrbanDictionary(*urbanDictionaryApiKey)
 
 	r := registry.NewRegistry(urbanDictionaryClient)
 
 	router := router.NewRouter(r.NewAppController())
-	log.Printf("listening on http://localhost:%s", "8080")
-	http.ListenAndServe(":8080", router)
+	log.Printf("listening on http://localhost:%s", *urbanDictionaryPort)
+	http.ListenAndServe(fmt.Sprintf(":%s", *urbanDictionaryPort), router)
 }
 
 func envString(env, fallback string) string {

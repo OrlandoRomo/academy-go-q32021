@@ -25,8 +25,8 @@ func (m MockInteractor) GetFromCSV(id string) (*model.List, error) {
 	args := m.Called(id)
 	return args.Get(0).(*model.List), args.Error(1)
 }
-func (m MockInteractor) GetConcurrent() (*model.List, error) {
-	args := m.Called()
+func (m MockInteractor) GetConcurrent(idType string, taskSize, perWorker int) (*model.List, error) {
+	args := m.Called(idType, taskSize, perWorker)
 	return args.Get(0).(*model.List), args.Error(1)
 }
 

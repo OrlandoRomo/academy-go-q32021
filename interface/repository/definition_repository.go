@@ -33,6 +33,10 @@ func (u *urbanDictionaryRepository) GetDefinitionById(id string) (*model.List, e
 	return definitions, err
 }
 
-func (u *urbanDictionaryRepository) GetConcurrentDefinitions() (*model.List, error) {
-	return nil, nil
+func (u *urbanDictionaryRepository) GetConcurrentDefinitions(idType string, taskSize, workers int) (*model.List, error) {
+	definitions, err := u.urbanDictionaryClient.GetConcurrentDefinitions(idType, taskSize, workers)
+	if err != nil {
+		return nil, err
+	}
+	return definitions, nil
 }

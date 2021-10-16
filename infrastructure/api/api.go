@@ -9,15 +9,25 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 
 	"github.com/OrlandoRomo/academy-go-q32021/domain/model"
+	"github.com/OrlandoRomo/academy-go-q32021/workerpool"
 )
 
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-var Client HTTPClient
+const (
+	Odd  string = "odd"
+	Even string = "even"
+)
+
+var (
+	Client     HTTPClient
+	WorkerPool *workerpool.WorkerPool
+)
 
 const (
 	urbanDictionaryURL = "https://mashape-community-urban-dictionary.p.rapidapi.com/define"
@@ -101,6 +111,86 @@ func (u *UrbanDictionary) GetDefinitionById(id string) (*model.List, error) {
 	return list, nil
 }
 
+// GetConcurrentDefinitions reads concurrently the local csv file
+func (u *UrbanDictionary) GetConcurrentDefinitions(idType string, items, itemsWorker int) (*model.List, error) {
+	list := new(model.List)
+	workers := items / itemsWorker
+	results := make(chan model.Definition, items)
+	wait := make(chan bool)
+	if WorkerPool == nil {
+		WorkerPool = workerpool.NewWorkerPool()
+	}
+	WorkerPool.InitChan()
+	WorkerPool.AddWorkers(workers)
+	wg := sync.WaitGroup{}
+	file, err := u.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	csvReader := csv.NewReader(file)
+	for i := 0; i < itemsWorker; i++ {
+		wg.Add(1)
+		go func() {
+			WorkerPool.Add(worker(csvReader, idType, itemsWorker, results, wait))
+			wg.Done()
+		}()
+	}
+
+	go func() {
+		for {
+			select {
+			case definition, ok := <-results:
+				if ok {
+					list.Definitions = append(list.Definitions, &definition)
+				}
+			case waited := <-wait:
+				if waited {
+					break
+				}
+			}
+		}
+	}()
+	wg.Wait()
+	WorkerPool.ShutDown()
+	return list, nil
+}
+func worker(reader *csv.Reader, idType string, itemsWork int, results chan<- model.Definition, wait chan bool) func() {
+	counter := 0
+	return func() {
+		for {
+			if counter == itemsWork {
+				wait <- true
+				break
+			}
+			line, err := reader.Read()
+			if err == io.EOF {
+				wait <- true
+				break
+			}
+			if err != nil {
+				wait <- true
+				break
+			}
+			idCsv, err := strconv.Atoi(line[0])
+			if err != nil {
+				wait <- true
+				break
+			}
+			if includeDefinition(idType, idCsv) {
+
+				definition, err := parseDefinition(line)
+				if err != nil {
+					wait <- true
+					break
+				}
+				results <- *definition
+				counter++
+			}
+		}
+	}
+}
+
 // Open returns a pointer of the local csv file
 func (u *UrbanDictionary) Open() (*os.File, error) {
 	file, err := os.OpenFile(u.CSVPath, os.O_APPEND|os.O_RDWR, os.ModePerm)
@@ -129,20 +219,11 @@ func (u *UrbanDictionary) Read(id string) ([]*model.Definition, error) {
 			continue
 		}
 		if id == line[0] {
-			idCsv, err := strconv.Atoi(line[0])
+			definition, err := parseDefinition(line)
 			if err != nil {
 				return nil, err
 			}
-
-			definition := model.Definition{
-				Defid:      idCsv,
-				Word:       line[1],
-				WrittenOn:  line[2],
-				Definition: line[3],
-				Permalink:  line[4],
-				Example:    line[5],
-			}
-			definitions = append(definitions, &definition)
+			definitions = append(definitions, definition)
 			break
 		}
 	}
@@ -190,4 +271,27 @@ func errorStatus(code int) error {
 	default:
 		return nil
 	}
+}
+
+// includeDefinition returns a bool if the definitionIs is even or odd based on idType
+func includeDefinition(idType string, definitionId int) bool {
+	if idType == Even {
+		return definitionId%2 == 0
+	}
+	return definitionId%2 != 0
+}
+
+func parseDefinition(str []string) (*model.Definition, error) {
+	idCsv, err := strconv.Atoi(str[0])
+	if err != nil {
+		return nil, err
+	}
+	return &model.Definition{
+		Defid:      idCsv,
+		Word:       str[1],
+		WrittenOn:  str[2],
+		Definition: str[3],
+		Permalink:  str[4],
+		Example:    str[5],
+	}, nil
 }

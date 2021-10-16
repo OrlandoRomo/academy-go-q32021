@@ -24,8 +24,8 @@ func (m MockDefinitionsRepo) GetDefinitionById(id string) (*model.List, error) {
 	return args.Get(0).(*model.List), args.Error(1)
 }
 
-func (m MockDefinitionsRepo) GetConcurrentDefinitions() (*model.List, error) {
-	args := m.Called()
+func (m MockDefinitionsRepo) GetConcurrentDefinitions(idType string, taskSize, perWorker int) (*model.List, error) {
+	args := m.Called(idType, taskSize, perWorker)
 	return args.Get(0).(*model.List), args.Error(1)
 }
 
