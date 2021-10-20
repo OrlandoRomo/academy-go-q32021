@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"sync/atomic"
 
 	"github.com/OrlandoRomo/academy-go-q32021/domain/model"
 	"github.com/OrlandoRomo/academy-go-q32021/workerpool"
@@ -25,8 +26,10 @@ const (
 )
 
 var (
-	Client     HTTPClient
-	WorkerPool *workerpool.WorkerPool
+	Client       HTTPClient
+	WorkerPool   *workerpool.WorkerPool
+	mutex        sync.Mutex
+	itemsCounter int32 = 0
 )
 
 const (
@@ -116,38 +119,32 @@ func (u *UrbanDictionary) GetConcurrentDefinitions(idType string, items, itemsWo
 	list := new(model.List)
 	workers := items / itemsWorker
 	results := make(chan model.Definition, items)
-	wait := make(chan bool)
 	if WorkerPool == nil {
 		WorkerPool = workerpool.NewWorkerPool()
 	}
 	WorkerPool.InitChan()
 	WorkerPool.AddWorkers(workers)
+	itemsCounter = 0
 	wg := sync.WaitGroup{}
 	file, err := u.Open()
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
-	wg.Add(items)
 	csvReader := csv.NewReader(file)
 
 	go func() {
-		for {
-			select {
-			case definition, ok := <-results:
-				if ok {
-					list.Definitions = append(list.Definitions, definition)
-				}
-			case waited := <-wait:
-				if waited {
-					break
-				}
-			}
+		for definition := range results {
+			list.Definitions = append(list.Definitions, definition)
 		}
 	}()
 
-	for i := 0; i < items; i++ {
-		go WorkerPool.Add(worker(csvReader, idType, itemsWorker, &wg, results, wait))
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			WorkerPool.Add(worker(csvReader, idType, items, itemsWorker, results))
+			wg.Done()
+		}()
 	}
 
 	wg.Wait()
@@ -156,38 +153,38 @@ func (u *UrbanDictionary) GetConcurrentDefinitions(idType string, items, itemsWo
 
 	return list, nil
 }
-func worker(reader *csv.Reader, idType string, itemsWork int, wg *sync.WaitGroup, results chan<- model.Definition, wait chan bool) func() {
+func worker(reader *csv.Reader, idType string, total, itemsWork int, results chan<- model.Definition) func() {
 	return func() {
-		defer wg.Done()
 		counter := 0
 		for {
-			if counter == itemsWork {
-				wait <- true
+			if int(itemsCounter) == total {
 				break
 			}
+			if counter == itemsWork {
+				break
+			}
+			mutex.Lock()
 			line, err := reader.Read()
+			mutex.Unlock()
 			if err == io.EOF {
-				wait <- true
 				break
 			}
 			if err != nil {
-				wait <- true
 				break
 			}
 			idCsv, err := strconv.Atoi(line[0])
 			if err != nil {
-				wait <- true
 				break
 			}
 			if includeDefinition(idType, idCsv) {
 
 				definition, err := parseDefinition(line)
 				if err != nil {
-					wait <- true
 					break
 				}
 				results <- definition
 				counter++
+				atomic.AddInt32(&itemsCounter, 1)
 			}
 		}
 	}
