@@ -51,7 +51,7 @@ func TestGet(t *testing.T) {
 			name: "success - response definitions by term",
 			term: "the",
 			response: &model.List{
-				Definitions: []*model.Definition{
+				Definitions: []model.Definition{
 					{
 						Definition: "Some definition",
 						Permalink:  "www.urbanctionary.example",
@@ -127,7 +127,7 @@ func TestGetFromCSV(t *testing.T) {
 			term:         "yeah",
 			definitionId: "1234566",
 			response: &model.List{
-				Definitions: []*model.Definition{
+				Definitions: []model.Definition{
 					{
 						Definition: "yeah definition",
 						Permalink:  "www.urbanctionary.example",
@@ -148,7 +148,7 @@ func TestGetFromCSV(t *testing.T) {
 			term:         "buddy",
 			definitionId: "111111",
 			response: &model.List{
-				Definitions: []*model.Definition{
+				Definitions: []model.Definition{
 					{
 						Definition: "buddy definition",
 						Permalink:  "www.urbanctionary.example",

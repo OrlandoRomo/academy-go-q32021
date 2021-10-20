@@ -128,21 +128,15 @@ func (u *UrbanDictionary) GetConcurrentDefinitions(idType string, items, itemsWo
 		return nil, err
 	}
 	defer file.Close()
+	wg.Add(items)
 	csvReader := csv.NewReader(file)
-	for i := 0; i < itemsWorker; i++ {
-		wg.Add(1)
-		go func() {
-			WorkerPool.Add(worker(csvReader, idType, itemsWorker, results, wait))
-			wg.Done()
-		}()
-	}
 
 	go func() {
 		for {
 			select {
 			case definition, ok := <-results:
 				if ok {
-					list.Definitions = append(list.Definitions, &definition)
+					list.Definitions = append(list.Definitions, definition)
 				}
 			case waited := <-wait:
 				if waited {
@@ -151,13 +145,21 @@ func (u *UrbanDictionary) GetConcurrentDefinitions(idType string, items, itemsWo
 			}
 		}
 	}()
+
+	for i := 0; i < items; i++ {
+		go WorkerPool.Add(worker(csvReader, idType, itemsWorker, &wg, results, wait))
+	}
+
 	wg.Wait()
+
 	WorkerPool.ShutDown()
+
 	return list, nil
 }
-func worker(reader *csv.Reader, idType string, itemsWork int, results chan<- model.Definition, wait chan bool) func() {
-	counter := 0
+func worker(reader *csv.Reader, idType string, itemsWork int, wg *sync.WaitGroup, results chan<- model.Definition, wait chan bool) func() {
 	return func() {
+		defer wg.Done()
+		counter := 0
 		for {
 			if counter == itemsWork {
 				wait <- true
@@ -184,7 +186,7 @@ func worker(reader *csv.Reader, idType string, itemsWork int, results chan<- mod
 					wait <- true
 					break
 				}
-				results <- *definition
+				results <- definition
 				counter++
 			}
 		}
@@ -201,8 +203,8 @@ func (u *UrbanDictionary) Open() (*os.File, error) {
 }
 
 // Read takes every definition record from the csv file into a []Definition
-func (u *UrbanDictionary) Read(id string) ([]*model.Definition, error) {
-	definitions := make([]*model.Definition, 0)
+func (u *UrbanDictionary) Read(id string) ([]model.Definition, error) {
+	definitions := make([]model.Definition, 0)
 	file, err := u.Open()
 	if err != nil {
 		return nil, err
@@ -281,12 +283,12 @@ func includeDefinition(idType string, definitionId int) bool {
 	return definitionId%2 != 0
 }
 
-func parseDefinition(str []string) (*model.Definition, error) {
+func parseDefinition(str []string) (model.Definition, error) {
 	idCsv, err := strconv.Atoi(str[0])
 	if err != nil {
-		return nil, err
+		return model.Definition{}, err
 	}
-	return &model.Definition{
+	return model.Definition{
 		Defid:      idCsv,
 		Word:       str[1],
 		WrittenOn:  str[2],

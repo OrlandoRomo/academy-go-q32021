@@ -3,7 +3,7 @@ package model
 // Struct to unmarshal the Urban dictionary response of definitions based on a term
 // API For more infomation: https://rapidapi.com/community/api/urban-dictionary/
 type List struct {
-	Definitions []*Definition `json:"list"`
+	Definitions []Definition `json:"list"`
 }
 
 type Definition struct {

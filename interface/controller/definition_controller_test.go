@@ -101,7 +101,7 @@ func TestGetDefinitionsFromCSV(t *testing.T) {
 		{
 			name: "success - valid request by definition id",
 			mockResponse: &model.List{
-				Definitions: []*model.Definition{
+				Definitions: []model.Definition{
 					{
 						Word:  "hello",
 						Defid: 1,

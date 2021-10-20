@@ -21,7 +21,7 @@ func TestResponseDefinitions(t *testing.T) {
 			message: "written on field parsed successfully",
 			error:   nil,
 			response: &model.List{
-				Definitions: []*model.Definition{
+				Definitions: []model.Definition{
 					{
 						Word:      "the",
 						WrittenOn: "2006-04-30T20:18:42.000Z",
@@ -36,7 +36,7 @@ func TestResponseDefinitions(t *testing.T) {
 			message: "written on field parsed unsuccessfully",
 			error:   model.ErrParsingDate{"2018-04-26T19", UrbanLayout},
 			response: &model.List{
-				Definitions: []*model.Definition{
+				Definitions: []model.Definition{
 					{
 						Word:      "the",
 						WrittenOn: "2018-04-26T19",

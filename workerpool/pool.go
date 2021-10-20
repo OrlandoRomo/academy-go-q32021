@@ -1,6 +1,8 @@
 package workerpool
 
-import "sync"
+import (
+	"sync"
+)
 
 type WorkerPool struct {
 	works chan func()

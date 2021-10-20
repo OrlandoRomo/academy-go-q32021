@@ -223,7 +223,7 @@ func TestWrite(t *testing.T) {
 			name: "success - reading content of the CSV",
 			path: "../../data/definitions_test.csv",
 			definitionToWrite: &model.List{
-				Definitions: []*model.Definition{
+				Definitions: []model.Definition{
 					{Defid: 12345, Word: "Hola"},
 				},
 			},
@@ -233,7 +233,7 @@ func TestWrite(t *testing.T) {
 			name: "failure - cannot read the content of the CSV",
 			path: "../../data/definitions_fake.csv",
 			definitionToWrite: &model.List{
-				Definitions: []*model.Definition{
+				Definitions: []model.Definition{
 					{Defid: 89312, Word: "write"},
 				},
 			},
